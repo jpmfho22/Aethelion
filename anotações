@@ -1,0 +1,170 @@
+Execução
+
+pip install -r requirements.txt
+
+python main.py --conformance    # 1º: valida o instrumento (24 testes)
+python main.py                  # 2º: tela única, ESPAÇO inicia o experimento
+python main.py --experiment     # ou: roteiro completo sem janela + relatório
+python main.py --report         # gráficos e RELATORIO.md a partir dos CSVs
+
+
+Demo mais fluida: python main.py --width 160 --height 120 --detail 0.5
+
+O que o projeto responde
+
+Pergunta: Como a arquitetura do buffer (largura do stencil, operações de
+transbordo circular, largura do z-buffer) e a variante do algoritmo (z-pass vs
+z-fail) afetam robustez, precisão geométrica e custo das sombras volumétricas?
+
+Cinco hipóteses, oito fases de 12 s:
+
+
+
+
+
+
+
+Fase
+
+
+
+Hipótese
+
+
+
+O que isola
+
+
+
+
+
+A / B
+
+
+
+H2
+
+
+
+custo das tampas: z-pass vs z-fail, câmera externa
+
+
+
+
+
+C / D
+
+
+
+H1
+
+
+
+câmera atravessando volumes: z-pass quebra, z-fail não
+
+
+
+
+
+E / F
+
+
+
+H3
+
+
+
+stencil de 3 bits sem wrap vs com INCR_WRAP
+
+
+
+
+
+G
+
+
+
+H4
+
+
+
+z-buffer de 12 bits, vista rasante
+
+
+
+
+
+H
+
+
+
+H5
+
+
+
+extrusão curta, volume truncado
+
+Verdade de referência: ray casting independente do algoritmo — é o que dá
+significado a precisão/revocação/F1.
+
+Validação do instrumento: suíte de 24 testes de conformidade sobre o
+subconjunto de stencil do OpenGL 1.4, mais regra de preenchimento e recorte no
+plano próximo. Roda antes de qualquer medição.
+
+Saídas geradas em results/
+
+conformidade.csv, experimento.csv, resumo.csv, eventos.log,
+fase_*.png, grafico_*.png, RELATORIO.md.
+
+Ligação com os dois artigos do professor
+
+
+
+
+
+Everitt & Kilgard (2002) — origem de z-pass/z-fail, tampas, problema do
+plano próximo e da necessidade de operações de wrap no contador de stencil.
+
+
+
+WSCG 2003, conformidade OpenGL 1.4 — a prática de validar uma
+implementação por conjunto de testes antes de confiar nela. INCR_WRAP /
+DECR_WRAP foram promovidas ao núcleo justamente em OpenGL 1.4, que é o elo
+entre os dois papers.
+
+Pontos de risco na primeira execução
+
+
+
+
+
+Rode --conformance antes de tudo. Se preenchimento_sem_dupla_cobertura
+falhar, o problema está no predicado _top_left em raster.py — e nenhuma
+medição de sombra vale enquanto isso não passar.
+
+
+
+Orientação das faces. Convenção adotada: area >= 0 = face traseira. Se
+a sombra sair invertida, inverta o teste em _draw_scene_prop e em
+front_facing de _shadow_pass — os dois juntos.
+
+
+
+Malhas fechadas. No Python:
+from aethelion.scene_crypt import build_crypt; print([p.name for p in build_crypt() if p.occluder and not p.solid.closed])
+→ a lista precisa sair vazia.
+
+
+
+Winding do quadrilátero extrudado em shadow.build_volume. Se as fases
+A–D derem F1 baixo de forma uniforme, troque a ordem dos triângulos do lado
+para [a, b2, b] e [a, a2, b2].
+
+
+
+Desempenho. Comece com --width 160 --height 120 --detail 0.5.
+
+
+
+Aviso: este código não foi executado no ambiente onde foi escrito. A primeira
+execução pode exigir ajustes nos pontos acima.
